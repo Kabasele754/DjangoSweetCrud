@@ -47,39 +47,7 @@
 </div>
 
     <!-- Liens de pagination -->
-        <nav aria-label="Page navigation example">
-            <ul class="pagination justify-content-center">
-                {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">Previous</span>
-                </li>
-                {% endif %}
-                {% for num in page_obj.paginator.page_range %}
-                {% if page_obj.number == num %}
-                <li class="page-item active" aria-current="page">
-                    <span class="page-link">{{ num }}</span>
-                </li>
-                {% else %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                </li>
-                {% endif %}
-                {% endfor %}
-                {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">Next</span>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
+    {% include 'app_article/pagination.html' %}
 
 </div>
 {% endblock %}
@@ -87,7 +55,8 @@
 {% block scripts %}
 <!-- Ajouter SweetAlert -->
 <script>
-function confirmAdd() {
+    // Fonction pour ajouter un nouvel article
+function confirmAddArticle() {
     Swal.fire({
         title: "Add New Article",
         html:
@@ -100,34 +69,44 @@ function confirmAdd() {
         denyButtonText: "Cancel",
         cancelButtonText: "Cancel",
         didOpen: function() {
+            // Ajouter un écouteur d'événement pour détecter le changement de fichier image
             var imageInput = document.getElementById('swal-image');
             imageInput.addEventListener('change', function() {
+                // Vérifier s'il y a un fichier sélectionné
                 if (imageInput.files && imageInput.files[0]) {
                     var reader = new FileReader();
                     reader.onload = function(e) {
+                        // Afficher l'image dans un élément <img>
                         var preview = document.getElementById('image-preview');
                         preview.innerHTML = '<img src="' + e.target.result + '" alt="Image Preview" style="max-height: 100px; border-radius: 50%;">';
                     }
+                    // Lire le contenu de l'image
                     reader.readAsDataURL(imageInput.files[0]);
                 }
             });
         }
     }).then((result) => {
         if (result.isConfirmed) {
+            // Créer un objet FormData pour envoyer les données
             var formData = new FormData();
+
+            // Récupérer les valeurs des champs
             var title = document.getElementById('swal-title').value;
             var description = document.getElementById('swal-description').value;
-            var image = document.getElementById('swal-image').files[0];
+            var image = document.getElementById('swal-image').files[0]; // Récupérer le fichier image
+
+            // Ajouter les valeurs des champs à FormData
             formData.append('title', title);
             formData.append('description', description);
-            formData.append('image', image);
+            formData.append('image', image); // Ajouter le fichier image à FormData
 
+            // Envoyer la requête POST avec FormData pour ajouter l'article
             fetch('{% url "article_create" %}', {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
                 },
-                body: formData,
+                body: formData, // Utiliser FormData comme corps de la requête
             })
             .then(response => {
                 if (response.ok) {
@@ -137,8 +116,42 @@ function confirmAdd() {
                 }
             })
             .then(data => {
+                // Actualiser la page ou ajouter le nouvel article au tableau existant
+                // Créez une nouvelle ligne de tableau avec les données du nouvel article
+                var newRow = document.createElement('tr');
+                newRow.id = 'article-row-' + data.id; // Assurez-vous d'avoir une ID unique pour la nouvelle ligne
+
+               // Mettre à jour visuellement les données du tableau avec les détails de l'article nouvellement créé
+    var newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td class="image-cell">
+            <img src="${data.image}" alt="${data.title}" class="rounded-circle" style="max-width: 50px;">
+        </td>
+        <td class="title-cell">${data.title}</td>
+        <td class="description-cell">${data.description}</td>
+        <td class="text-right py-0 align-middle">
+            <div class="btn-group btn-group-sm">
+            <a href="#" class="btn btn-secondary btn-sm" onclick="showArticleDetails({{ data.id }})" title="View">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                <a href="#" data-update-url="" data-article-id="${data.id}" class="btn btn-info" onclick="confirmEdit(this)"><i class="fas fa-pencil-alt"></i></a>
+                <a href="#" data-delete-url="" onclick="confirmDelete(this)" class="btn btn-danger"><i class="fas fa-trash"></i></a>
+            </div>
+        </td>
+    `;
+
+    // Ajouter la nouvelle ligne au tableau existant
+    var tableBody = document.querySelector('.table tbody');
+    tableBody.appendChild(newRow);
+
+    // Afficher un message de succès à l'utilisateur
+    Swal.fire(data.message, "", "success");
+                // Ajouter la nouvelle ligne au tableau existant
+                var tableBody = document.querySelector('.table tbody');
+                tableBody.appendChild(newRow);
+
+                // Afficher un message de succès à l'utilisateur
                 Swal.fire(data.message, "", "success");
-                // Refresh or update the page if necessary
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -149,9 +162,10 @@ function confirmAdd() {
         }
     });
 }
+
 </script>
 
-<!-- Editer SweetAlert -->
+<!-- Edit SweetAlert -->
 <script>
   // Fonction pour éditer un article
 function confirmEdit(element) {
@@ -233,7 +247,6 @@ function confirmEdit(element) {
 }
 
 </script>
-
 
 <!-- Supprimer SweetAlert -->
 <script>
