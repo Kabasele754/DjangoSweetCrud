@@ -1,7 +1,7 @@
 
 ---
-
-# CRUD avec Django et SweetAlert
+# DjangoSweetCrud
+# CRUD avec Django et SweetAlert 
 
 Ce projet utilise Django pour implémenter les opérations CRUD (Create, Read, Update, Delete) et SweetAlert pour des boîtes de dialogue élégantes.
 
@@ -45,4 +45,4 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de
 
 ---
 
-# DjangoSweetCrud
+
