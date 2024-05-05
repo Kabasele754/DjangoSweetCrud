@@ -35,6 +35,17 @@ Vous pouvez trouver des exemples de code pour chaque opération CRUD dans les fi
 
 [//]: # (- `static/js/`: Contient les fichiers JavaScript pour ajouter des fonctionnalités dynamiques, y compris l'utilisation de SweetAlert.)
 
+## Images 
+![Screenshot 2024-05-05 at 5.18.20 in the afternoon.png](images%2FScreenshot%202024-05-05%20at%205.18.20%20in%20the%20afternoon.png)
+
+![Screenshot 2024-05-05 at 5.17.22 in the afternoon.png](images%2FScreenshot%202024-05-05%20at%205.17.22%20in%20the%20afternoon.png)
+
+![Screenshot 2024-05-05 at 5.17.42 in the afternoon.png](images%2FScreenshot%202024-05-05%20at%205.17.42%20in%20the%20afternoon.png)
+
+![Screenshot 2024-05-05 at 5.17.54 in the afternoon.png](images%2FScreenshot%202024-05-05%20at%205.17.54%20in%20the%20afternoon.png)
+
+![Screenshot 2024-05-05 at 5.18.06 in the afternoon.png](images%2FScreenshot%202024-05-05%20at%205.18.06%20in%20the%20afternoon.png)
+
 ## Contribuer
 
 Si vous souhaitez contribuer à ce projet, veuillez suivre les instructions de [CONTRIBUTING.md](CONTRIBUTING.md).
