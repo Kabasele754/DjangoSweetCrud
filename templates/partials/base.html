@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DjangoSweetCrud{% endblock %}</title>
+    <!-- Link SweetAlert CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@10">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+
+</head>
+<body>
+<!-- Nav -->
+
+{% include 'partials/nav.html' %}
+
+    <div class="container mt-4">
+        <!-- Button to add new article -->
+
+        <!-- Content block for child templates -->
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="https://kit.fontawesome.com/a076d05399.js"></script>
+
+
+    <!-- Link SweetAlert JS -->
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+    <!-- Include custom scripts here -->
+    {% block scripts %} {% endblock %}
+
+
+<script>
+    // Fonction pour ajouter un nouvel article
+function confirmAddArticle() {
+    Swal.fire({
+        title: "Add New Article",
+        html:
+            '<input id="swal-title" class="form-control mb-3" placeholder="Title">' +
+            '<textarea id="swal-description" class="form-control mb-3" placeholder="Description"></textarea>' +
+            '<input id="swal-image" type="file" class="form-control">',
+        showDenyButton: true,
+        showCancelButton: true,
+        confirmButtonText: "Add",
+        denyButtonText: "Cancel",
+        cancelButtonText: "Cancel",
+        didOpen: function() {
+            // Ajouter un écouteur d'événement pour détecter le changement de fichier image
+            var imageInput = document.getElementById('swal-image');
+            imageInput.addEventListener('change', function() {
+                // Vérifier s'il y a un fichier sélectionné
+                if (imageInput.files && imageInput.files[0]) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        // Afficher l'image dans un élément <img>
+                        var preview = document.getElementById('image-preview');
+                        preview.innerHTML = '<img src="' + e.target.result + '" alt="Image Preview" style="max-height: 100px; border-radius: 50%;">';
+                    }
+                    // Lire le contenu de l'image
+                    reader.readAsDataURL(imageInput.files[0]);
+                }
+            });
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Créer un objet FormData pour envoyer les données
+            var formData = new FormData();
+
+            // Récupérer les valeurs des champs
+            var title = document.getElementById('swal-title').value;
+            var description = document.getElementById('swal-description').value;
+            var image = document.getElementById('swal-image').files[0]; // Récupérer le fichier image
+
+            // Ajouter les valeurs des champs à FormData
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('image', image); // Ajouter le fichier image à FormData
+
+            // Envoyer la requête POST avec FormData pour ajouter l'article
+            fetch('{% url "article_create" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: formData, // Utiliser FormData comme corps de la requête
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Error adding article');
+                }
+            })
+            .then(data => {
+                // Actualiser la page ou ajouter le nouvel article au tableau existant
+                // Créez une nouvelle ligne de tableau avec les données du nouvel article
+                var newRow = document.createElement('tr');
+                newRow.id = 'article-row-' + data.id; // Assurez-vous d'avoir une ID unique pour la nouvelle ligne
+
+               // Mettre à jour visuellement les données du tableau avec les détails de l'article nouvellement créé
+    var newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td class="image-cell">
+            <img src="${data.image}" alt="${data.title}" class="rounded-circle" style="max-width: 50px;">
+        </td>
+        <td class="title-cell">${data.title}</td>
+        <td class="description-cell">${data.description}</td>
+        <td class="text-right py-0 align-middle">
+            <div class="btn-group btn-group-sm">
+            <a href="#" class="btn btn-secondary btn-sm" onclick="showArticleDetails({{ data.id }})" title="View">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                <a href="#" data-update-url="" data-article-id="${data.id}" class="btn btn-info" onclick="confirmEdit(this)"><i class="fas fa-pencil-alt"></i></a>
+                <a href="#" data-delete-url="" onclick="confirmDelete(this)" class="btn btn-danger"><i class="fas fa-trash"></i></a>
+            </div>
+        </td>
+    `;
+
+    // Ajouter la nouvelle ligne au tableau existant
+    var tableBody = document.querySelector('.table tbody');
+    tableBody.appendChild(newRow);
+
+    // Afficher un message de succès à l'utilisateur
+    Swal.fire(data.message, "", "success");
+                // Ajouter la nouvelle ligne au tableau existant
+                var tableBody = document.querySelector('.table tbody');
+                tableBody.appendChild(newRow);
+
+                // Afficher un message de succès à l'utilisateur
+                Swal.fire(data.message, "", "success");
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire("An error occurred", "", "error");
+            });
+        } else if (result.isDenied) {
+            Swal.fire("Add canceled", "", "info");
+        }
+    });
+}
+
+</script>
+
+
+</body>
+</html>

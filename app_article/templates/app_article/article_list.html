@@ -1,0 +1,328 @@
+{% extends 'partials/base.html' %}
+
+{% block title %}Article List{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <a href="#" onclick="confirmAddArticle()" class="btn btn-primary mb-3"> <i class="fas fa-plus"></i> Add Article</a>
+
+    <table class="table table-striped table-hover border">
+        <thead>
+            <tr>
+                <th>ID</th>
+                   <th>Image</th>
+                <th>Title</th>
+                <th>Description</th>
+
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for article in page_obj %}
+            <tr id="article-row-{{ article.id }}" class="article-row">
+                 <td>{{ article.id }}</td>
+                 <td class="image-cell">
+                    <img src="{{ article.image.url }}" alt="{{ article.title }}" style="width: 50px; height: 50px; border-radius: 50%;">
+                </td>
+
+                <td class="title-cell">{{ article.title }}</td>
+                <td class="description-cell">{{ article.description }}</td>
+
+                <td>
+                    <a href="#" class="btn btn-secondary btn-sm" onclick="showArticleDetails({{ article.id }})" title="View">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="#" class="btn btn-info" onclick="confirmEdit(this)" data-update-url="{% url 'article_update' article.id %}" data-article-id="{{ article.id }}">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="#" class="btn btn-danger" onclick="confirmDelete(this)" data-delete-url="{% url 'article_delete' article.id %}">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+    <!-- Liens de pagination -->
+        <nav aria-label="Page navigation example">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Previous</span>
+                </li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active" aria-current="page">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Next</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Ajouter SweetAlert -->
+<script>
+function confirmAdd() {
+    Swal.fire({
+        title: "Add New Article",
+        html:
+            '<input id="swal-title" class="form-control mb-3" placeholder="Title">' +
+            '<textarea id="swal-description" class="form-control mb-3" placeholder="Description"></textarea>' +
+            '<input id="swal-image" type="file" class="form-control">',
+        showDenyButton: true,
+        showCancelButton: true,
+        confirmButtonText: "Add",
+        denyButtonText: "Cancel",
+        cancelButtonText: "Cancel",
+        didOpen: function() {
+            var imageInput = document.getElementById('swal-image');
+            imageInput.addEventListener('change', function() {
+                if (imageInput.files && imageInput.files[0]) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        var preview = document.getElementById('image-preview');
+                        preview.innerHTML = '<img src="' + e.target.result + '" alt="Image Preview" style="max-height: 100px; border-radius: 50%;">';
+                    }
+                    reader.readAsDataURL(imageInput.files[0]);
+                }
+            });
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            var formData = new FormData();
+            var title = document.getElementById('swal-title').value;
+            var description = document.getElementById('swal-description').value;
+            var image = document.getElementById('swal-image').files[0];
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('image', image);
+
+            fetch('{% url "article_create" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: formData,
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Error adding article');
+                }
+            })
+            .then(data => {
+                Swal.fire(data.message, "", "success");
+                // Refresh or update the page if necessary
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire("An error occurred", "", "error");
+            });
+        } else if (result.isDenied) {
+            Swal.fire("Add canceled", "", "info");
+        }
+    });
+}
+</script>
+
+<!-- Editer SweetAlert -->
+<script>
+  // Fonction pour éditer un article
+function confirmEdit(element) {
+    var updateUrl = element.getAttribute('data-update-url');
+    var articleId = element.getAttribute('data-article-id');
+    var currentTitle = document.querySelector('#article-row-' + articleId + ' .title-cell').textContent;
+    var currentDescription = document.querySelector('#article-row-' + articleId + ' .description-cell').textContent;
+
+    Swal.fire({
+        title: "Update Article",
+        html:
+            '<input id="swal-title" class="form-control mb-3" value="' + currentTitle + '">' +
+            '<textarea id="swal-description" class="form-control mb-3">' + currentDescription + '</textarea>' +
+            '<input id="swal-image" type="file" class="form-control mb-3">',
+        showDenyButton: true,
+        showCancelButton: true,
+        confirmButtonText: "Yes, update",
+        denyButtonText: "No",
+        cancelButtonText: "Cancel",
+        didOpen: function() {
+            // Add event listener to detect image file change
+            var imageInput = document.getElementById('swal-image');
+            imageInput.addEventListener('change', function() {
+                if (imageInput.files && imageInput.files[0]) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        var preview = document.getElementById('image-preview');
+                        preview.innerHTML = '<img src="' + e.target.result + '" alt="Image Preview" style="max-height: 100px; border-radius: 50%;">';
+                    }
+                    reader.readAsDataURL(imageInput.files[0]);
+                }
+            });
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            var formData = new FormData();
+            var newTitle = document.getElementById('swal-title').value;
+            var newDescription = document.getElementById('swal-description').value;
+            var newImage = document.getElementById('swal-image').files[0]; // Get the new image file
+
+            formData.append('title', newTitle);
+            formData.append('description', newDescription);
+            formData.append('image', newImage); // Append the new image file to FormData
+
+            fetch(updateUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: formData,
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Error updating article');
+                }
+            })
+            .then(data => {
+                // Mettre à jour visuellement les données de l'article dans le tableau
+                document.querySelector('#article-row-' + articleId + ' .title-cell').textContent = data.title;
+                document.querySelector('#article-row-' + articleId + ' .description-cell').textContent = data.description;
+
+                // Si une nouvelle image est retournée, mettre à jour l'image dans le tableau
+                if (data.image) {
+                    document.querySelector('#article-row-' + articleId + ' .image-cell').innerHTML = '<img src="' + data.image + '" alt="Article Image" style="max-height: 50px; border-radius: 50%;">';
+                }
+
+                Swal.fire("Update successful!", "", "success");
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire("An error occurred", "", "error");
+            });
+        } else if (result.isDenied) {
+            Swal.fire("Update canceled", "", "info");
+        }
+    });
+}
+
+</script>
+
+
+<!-- Supprimer SweetAlert -->
+<script>
+// Dans votre fichier JS externe (par exemple, main.js)
+function confirmDelete(element) {
+    var deleteUrl = element.getAttribute('data-delete-url');
+
+    Swal.fire({
+        title: "Are you sure you want to delete this item ?",
+        showDenyButton: true,
+        showCancelButton: true,
+        confirmButtonText: "Yes, delete",
+        denyButtonText: "No",
+        cancelButtonText: "Cancel"
+
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Faites une requête Ajax pour supprimer l'élément
+            fetch(deleteUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+            })
+            .then(response => {
+                if (response.status === 204) {
+                    Swal.fire("Deleted!", "", "success");
+
+
+                    // Retirez visuellement l'élément du tableau
+                    var rowToRemove = element.closest('tr');
+                    console.log('Row to remove:', rowToRemove);
+                    rowToRemove.remove();
+
+                } else {
+                    Swal.fire("Error occurred while deleting", "", "error");
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+              Swal.fire("An error occurred", "", "error");
+
+            });
+        } else if (result.isDenied) {
+            Swal.fire("Deletion canceled", "", "info");
+
+        }
+    });
+}
+
+
+</script>
+
+<!-- detail -->
+<script>
+function showArticleDetails(articleId) {
+    // Envoyer une requête Ajax pour récupérer les détails de l'article
+    fetch(`/article/detail/${articleId}/`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest' // Ajoutez cet en-tête pour indiquer une requête Ajax
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Afficher une boîte de dialogue SweetAlert avec les détails de l'article
+        Swal.fire({
+            title: data.article.title,
+            html: `
+        <div class="card" style="width: 27rem;">
+            <img src="${data.article.image}" class="card-img-top" alt="${data.article.title}">
+            <div class="card-body">
+                <h5 class="card-title">${data.article.title}</h5>
+                <p class="card-text">${data.article.description}</p>
+            </div>
+        </div>
+    `,
+            confirmButtonText: 'Close'
+        });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire("An error occurred", "", "error");
+    });
+}
+</script>
+
+
+{% endblock %}
